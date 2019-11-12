@@ -1,6 +1,5 @@
 
 #!/usr/bin/env python3
-import binascii
 
 
 s_box = (
@@ -42,26 +41,28 @@ inv_s_box = (
 )
 
 
-def convert_into_matrix(list):
+def list_to_matrix(list):
     """ Converts a 16-byte array into a 4x4 matrix. """
     #return [list(text[i:i+4]) for i = 4 in range(0, len(text), 4)]
     
     return [list[i:i+4] for i in range(0, len(list), 4)]
 
+"""
 def typ(list):
     for i in range(0, len(list)):
         for j in range(0, len(list)):
             print(type(list[i][j])) 
+"""
 
 
 def sub_bytes(s):
-    for i in range(0,len(s)):
+    for i in range(0, len(s)):
         for j in range(0, len(s)):
             s[i][j] = s_box[s[i][j]] 
 
 def inv_sub_bytes(s):
-    for i in range(4):
-        for j in range(4):
+    for i in range(0, len(s)):
+        for j in range(0, len(s)):
             s[i][j] = inv_s_box[s[i][j]]
 
 
@@ -98,19 +99,20 @@ def add_round_key(s, k):
         for j in range(4):
             s[i][j] ^= k[i][j]
 
-def _string_to_bytes(text):
+def convert_string_to_bytes(text):
     return list(ord(c) for c in text)
 
-def _bytes_to_string(list):
+def convert_bytes_to_string(list):
     for i in range(0, len(list)):
         for j in range(0,len(list)):
             list[i][j] = chr(list[i][j])
     return list
 
-
-def matrix2bytes(matrix):
-    """ Converts a 4x4 matrix into a 16-byte array.  """
+"""
+def convert_matrix_to_bytes(matrix):
+    #Converts a 4x4 matrix into a 16-byte array.
     return bytes(sum(matrix, []))
+"""
 
 """
 def toHex(s):
@@ -120,26 +122,28 @@ def toHex(s):
         if len(hv) == 1:
             hv = '0'+hv
         lst.append(hv)
-        
+       
     
     return lst
+"""
 """
 def list_to_string(s):
     str1 = ""
     for ele in s:
         str1 += ele
     return str1
-    
+"""
+
 class Algo:
 
-    def __init__(self,master_key):
-        self.n_rounds = 10
-        self._subkeys_matrix = self.key_matrices(master_key)
+    def __init__(self,crypto_key):
+        self.number_rounds = 10
+        self._subkeys_matrices = self.key_matrices_generator(crypto_key)
 
-    def key_matrices(self, master_key):
+    def key_matrices_generator(self, crypto_key):
         i=1
-        subkeys = convert_into_matrix(_string_to_bytes(master_key))
-        iteration_size = len(master_key) // 4
+        subkeys = list_to_matrix(convert_string_to_bytes(crypto_key))
+        iteration_size = len(crypto_key) // 4
 
         while len(subkeys) < 11*4:
             word = list(subkeys[-1])
@@ -155,33 +159,33 @@ class Algo:
 
     def encrypt(self,text):
 
-        plaintext = convert_into_matrix(_string_to_bytes(text))
-        add_round_key(plaintext,self._subkeys_matrix[0])
+        plaintext = list_to_matrix(convert_string_to_bytes(text))
+        add_round_key(plaintext,self._subkeys_matrices[0])
 
         for i in range(1,10):
             sub_bytes(plaintext)
             shift_rows(plaintext)
             shift_columns(plaintext)
-            add_round_key(plaintext, self._subkeys_matrix[i])
+            add_round_key(plaintext, self._subkeys_matrices[i])
 
         sub_bytes(plaintext)
         shift_rows(plaintext)
-        add_round_key(plaintext, self._subkeys_matrix[-1])
+        add_round_key(plaintext, self._subkeys_matrices[-1])
         return plaintext
 
     def decrypt(self,text):
 
-        add_round_key(text, self._subkeys_matrix[-1])
+        add_round_key(text, self._subkeys_matrices[-1])
         inv_shift_rows(text)
         inv_sub_bytes(text)
 
-        for i in range (self.n_rounds - 1, 0, -1):
-            add_round_key(text, self._subkeys_matrix[i])
+        for i in range (self.number_rounds - 1, 0, -1):
+            add_round_key(text, self._subkeys_matrices[i])
             inv_shift_columns(text)
             inv_shift_rows(text)
             inv_sub_bytes(text)
     
-        add_round_key(text, self._subkeys_matrix[0])
+        add_round_key(text, self._subkeys_matrices[0])
 
         return text
     
@@ -190,9 +194,20 @@ class Algo:
 if __name__ == '__main__':
     print("Welcome to the Cryptographic Algorithm! Let's Try it!")
     text = input("text :")
-    assert len(text) == 16
+    try:
+        assert len(text) == 16
+    except:
+        print("Error! plaintext length must be 16bits")
+        text = input("text :")
+
+    
     key = input("master key: ")
-    assert len(key) == 16
+    try:
+        assert len(key) == 16
+    except:
+        print("Error! crypto_key length must be 16bits")
+        key = input("master key: ")
+
     aes = Algo(key)
     
     choice = input("Do you want to encrypt or decrypt? ")
@@ -200,14 +215,14 @@ if __name__ == '__main__':
         if choice == "encrypt":
             lol = aes.encrypt(text)
             #print(convert_into_matrix(_string_to_bytes(text)))
-            print("Encrypted message: ",_bytes_to_string(aes.encrypt(text)))
+            print("Encrypted message: ",convert_bytes_to_string(aes.encrypt(text)))
             #print(aes.decrypt(lol))
         elif choice == "decrypt":
             lol = aes.encrypt(text)
             #print(convert_into_matrix(_string_to_bytes(text)))
-            print("Encrypted message: ",_bytes_to_string(aes.encrypt(text)))
+            print("Encrypted message: ",convert_bytes_to_string(aes.encrypt(text)))
             input("Press enter to continue.......")
-            print("Decrypted message: ",_bytes_to_string(aes.decrypt(lol)))
+            print("Decrypted message: ",convert_bytes_to_string(aes.decrypt(lol)))
         else:
             print("you should choose between encrypt ou decrypt")
 
