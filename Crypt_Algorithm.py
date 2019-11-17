@@ -2,7 +2,8 @@
 #!/usr/bin/env python3
 
 
-s_box = (
+
+S_BOX = (
     0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76,
     0xCA, 0x82, 0xC9, 0x7D, 0xFA, 0x59, 0x47, 0xF0, 0xAD, 0xD4, 0xA2, 0xAF, 0x9C, 0xA4, 0x72, 0xC0,
     0xB7, 0xFD, 0x93, 0x26, 0x36, 0x3F, 0xF7, 0xCC, 0x34, 0xA5, 0xE5, 0xF1, 0x71, 0xD8, 0x31, 0x15,
@@ -21,7 +22,7 @@ s_box = (
     0x8C, 0xA1, 0x89, 0x0D, 0xBF, 0xE6, 0x42, 0x68, 0x41, 0x99, 0x2D, 0x0F, 0xB0, 0x54, 0xBB, 0x16,
 )
 
-inv_s_box = (
+INV_S_BOX = (
     0x52, 0x09, 0x6A, 0xD5, 0x30, 0x36, 0xA5, 0x38, 0xBF, 0x40, 0xA3, 0x9E, 0x81, 0xF3, 0xD7, 0xFB,
     0x7C, 0xE3, 0x39, 0x82, 0x9B, 0x2F, 0xFF, 0x87, 0x34, 0x8E, 0x43, 0x44, 0xC4, 0xDE, 0xE9, 0xCB,
     0x54, 0x7B, 0x94, 0x32, 0xA6, 0xC2, 0x23, 0x3D, 0xEE, 0x4C, 0x95, 0x0B, 0x42, 0xFA, 0xC3, 0x4E,
@@ -40,190 +41,202 @@ inv_s_box = (
     0x17, 0x2B, 0x04, 0x7E, 0xBA, 0x77, 0xD6, 0x26, 0xE1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0C, 0x7D,
 )
 
+SUBKEYS_SHIFT = [1,1,2,2,2,2,2,2,1,2,2,2,2,2,2,1,1]
 
-def list_to_matrix(list):
-    """ Converts a 16-byte array into a 4x4 matrix. """
-    #return [list(text[i:i+4]) for i = 4 in range(0, len(text), 4)]
+ROUNDS_SHIFT_1 = [2,2,3,3,3,3,3,3,3,2,3,3,3,3,3,3,2,2]
+
+ROUNDS_SHIFT_2 = [3,3,1,1,1,1,1,1,3,1,1,1,1,1,1,3,3]
+
+
+def convert_list_to_matrix(p):
+    return [p[i:i+4] for i in range(0, len(p), 4)]
+
+
+def map_to_sbox(p):
+    for i in range(0, len(p)):
+        for j in range(0, len(p)):
+            p[i][j] = S_BOX[p[i][j]] 
+            
+
+def inv_map_to_sbox(p):
     
-    return [list[i:i+4] for i in range(0, len(list), 4)]
-
-"""
-def typ(list):
-    for i in range(0, len(list)):
-        for j in range(0, len(list)):
-            print(type(list[i][j])) 
-"""
+    for i in range(0, len(p)):
+        for j in range(0, len(p)):
+            p[i][j] = INV_S_BOX[p[i][j]]
 
 
-def sub_bytes(s):
-    for i in range(0, len(s)):
-        for j in range(0, len(s)):
-            s[i][j] = s_box[s[i][j]] 
+def rows_shifting(p):
 
-def inv_sub_bytes(s):
-    for i in range(0, len(s)):
-        for j in range(0, len(s)):
-            s[i][j] = inv_s_box[s[i][j]]
+    p[0][0], p[1][0], p[2][0], p[3][0] = p[1][0], p[2][0], p[3][0], p[0][0]
+    p[0][1], p[1][1], p[2][1], p[3][1] = p[2][1], p[3][1], p[0][1], p[1][1]
+    p[0][2], p[1][2], p[2][2], p[3][2] = p[3][2], p[0][2], p[1][2], p[2][2]
+    p[0][3], p[1][3], p[2][3], p[3][3] = p[3][3], p[0][3], p[1][3], p[2][3]
+
+def inv_rows_shifting(p):
+
+    p[0][0], p[1][0], p[2][0], p[3][0] = p[3][0], p[0][0], p[1][0], p[2][0]
+    p[0][1], p[1][1], p[2][1], p[3][1] = p[2][1], p[3][1], p[0][1], p[1][1]
+    p[0][2], p[1][2], p[2][2], p[3][2] = p[1][2], p[2][2], p[3][2], p[0][2]
+    p[0][3], p[1][3], p[2][3], p[3][3] = p[1][3], p[2][3], p[3][3], p[0][3]
+
+def columns_shifting(p):
+
+    left_circular_shift(p[1],1)
+    right_circular_shift(p[2],2)
+    left_circular_shift(p[3],3)
 
 
-def shift_rows(s):
-
-    s[0][0], s[1][0], s[2][0], s[3][0] = s[0][0], s[1][0], s[2][0], s[3][0]
-    s[0][1], s[1][1], s[2][1], s[3][1] = s[1][1], s[2][1], s[3][1], s[0][1]
-    s[0][2], s[1][2], s[2][2], s[3][2] = s[2][2], s[3][2], s[0][2], s[1][2]
-    s[0][3], s[1][3], s[2][3], s[3][3] = s[3][3], s[0][3], s[1][3], s[2][3]
-
-def inv_shift_rows(s):
-
-    s[0][1], s[1][1], s[2][1], s[3][1] = s[3][1], s[0][1], s[1][1], s[2][1]
-    s[0][2], s[1][2], s[2][2], s[3][2] = s[2][2], s[3][2], s[0][2], s[1][2]
-    s[0][3], s[1][3], s[2][3], s[3][3] = s[1][3], s[2][3], s[3][3], s[0][3]
-
-def shift_columns(s):
-
-    s[0][0], s[0][1], s[0][2], s[0][3] = s[0][0], s[0][1], s[0][2], s[0][3]
-    s[1][0], s[1][1], s[1][2], s[1][3] = s[1][1], s[1][2], s[1][3], s[1][0]
-    s[2][0], s[2][1], s[2][2], s[2][3] = s[2][2], s[2][3], s[2][0], s[2][1]
-    s[3][0], s[3][1], s[3][2], s[3][3] = s[3][3], s[3][0], s[3][1], s[3][2]
-
-def inv_shift_columns(s):
-    s[1][0], s[1][1], s[1][2], s[1][3] = s[1][3], s[1][0], s[1][1], s[1][2]
-    s[2][0], s[2][1], s[2][2], s[2][3] = s[2][2], s[2][3], s[2][0], s[2][1]
-    s[3][0], s[3][1], s[3][2], s[3][3] = s[3][1], s[3][2], s[3][3], s[3][2]
-
-def xor_bytes(x,y):
-    return bytes(i^j for i, j in zip(x,y))
-
-def add_round_key(s, k):
-    for i in range(4):
-        for j in range(4):
-            s[i][j] ^= k[i][j]
-
-def convert_string_to_bytes(text):
-    return list(ord(c) for c in text)
-
-def convert_bytes_to_string(list):
-    for i in range(0, len(list)):
-        for j in range(0,len(list)):
-            list[i][j] = chr(list[i][j])
-    return list
-
-"""
-def convert_matrix_to_bytes(matrix):
-    #Converts a 4x4 matrix into a 16-byte array.
-    return bytes(sum(matrix, []))
-"""
-
-"""
-def toHex(s):
-    lst = []
-    for ch in s:
-        hv = '0x' + hex(ord(ch)).replace('0x', '')
-        if len(hv) == 1:
-            hv = '0'+hv
-        lst.append(hv)
-       
+def inv_shift_columns(p):
     
-    return lst
-"""
-"""
-def list_to_string(s):
-    str1 = ""
-    for ele in s:
-        str1 += ele
-    return str1
-"""
+    right_circular_shift(p[1],1)
+    left_circular_shift(p[2],2)
+    right_circular_shift(p[3],3)
+    
 
-class Algo:
+def XOR(p1,p2):
+    
+    return [i^j for i,j in zip(p1,p2)]
+
+def add_round_key(p1, p2):
+    for i in range(0, len(p1)):
+        for j in range(0, len(p2)):
+            p1[i][j] ^= p2[i][j]
+
+def convert_chr_to_bytes(p):
+    return list(ord(c) for c in p)
+
+def convert_bytes_to_chr(p):
+    for i in range(0, len(p)):
+        for j in range(0,len(p)):
+            p[i][j] = chr(p[i][j])
+    return p
+
+def left_circular_shift(p,n):
+    return p[n::] + p[:n:]
+
+def right_circular_shift(p,n):
+    return p[n:len(p):] + p[0:n:]
+
+
+class My_Cryto_Algorithm:
 
     def __init__(self,crypto_key):
-        self.number_rounds = 10
-        self._subkeys_matrices = self.key_matrices_generator(crypto_key)
+        self.number_rounds = 16
+        self.number_subkeys = 17
+        self.subkeys_matrices = self.subkeys_matrices_generator(crypto_key)
 
-    def key_matrices_generator(self, crypto_key):
+    def subkeys_matrices_generator(self, crypto_key):
         i=1
-        subkeys = list_to_matrix(convert_string_to_bytes(crypto_key))
-        iteration_size = len(crypto_key) // 4
+        
+        subkeys = convert_list_to_matrix(convert_chr_to_bytes(crypto_key))
+        subkeys.reverse()
 
-        while len(subkeys) < 11*4:
-            word = list(subkeys[-1])
+        while len(subkeys) < (self.number_subkeys*4):
+            word = list(subkeys[3])
 
-            if len(subkeys) % iteration_size ==0:
-                word.append(word.pop(0))
-                word = [s_box[b] for b in word]
+            if len(subkeys) % 4 == 0:
+                left_circular_shift(word,SUBKEYS_SHIFT[i-1])
+                word = [S_BOX[b] for b in word]
                 i+=1
     
-            word = xor_bytes(word, subkeys[-iteration_size])
+            word = XOR(word, subkeys[-4])
             subkeys.append(word)
-        return [subkeys[4*i : 4*(i+1)] for i in range(len(subkeys) // 4)]
+            
+        return [subkeys[4*i : 4*(i+1)] for i in range(self.number_subkeys)]
 
-    def encrypt(self,text):
+    def Encryption(self,text):
 
-        plaintext = list_to_matrix(convert_string_to_bytes(text))
-        add_round_key(plaintext,self._subkeys_matrices[0])
+        plaintext = convert_list_to_matrix(convert_chr_to_bytes(text))
+        add_round_key(plaintext, self.subkeys_matrices[0])
 
-        for i in range(1,10):
-            sub_bytes(plaintext)
-            shift_rows(plaintext)
-            shift_columns(plaintext)
-            add_round_key(plaintext, self._subkeys_matrices[i])
+        for i in range(1,8):
+            map_to_sbox(plaintext)
+            rows_shifting(plaintext)
+            columns_shifting(plaintext)
+            add_round_key(plaintext, self.subkeys_matrices[i])
+            left_circular_shift(plaintext,ROUNDS_SHIFT_1[i-1])
 
-        sub_bytes(plaintext)
-        shift_rows(plaintext)
-        add_round_key(plaintext, self._subkeys_matrices[-1])
-        return plaintext
 
-    def decrypt(self,text):
+        for i in range(8,16):
+            map_to_sbox(plaintext)
+            rows_shifting(plaintext)
+            columns_shifting(plaintext)
+            add_round_key(plaintext, self.subkeys_matrices[i])
+            left_circular_shift(plaintext,ROUNDS_SHIFT_2[i-1])
+        
+        map_to_sbox(plaintext)
+        rows_shifting(plaintext)
+        add_round_key(plaintext, self.subkeys_matrices[-1])
+        
+        cipher_text = plaintext
+        
+        return cipher_text
 
-        add_round_key(text, self._subkeys_matrices[-1])
-        inv_shift_rows(text)
-        inv_sub_bytes(text)
+    def Decryption(self,cipher_text):
 
-        for i in range (self.number_rounds - 1, 0, -1):
-            add_round_key(text, self._subkeys_matrices[i])
-            inv_shift_columns(text)
-            inv_shift_rows(text)
-            inv_sub_bytes(text)
+        
+        add_round_key(cipher_text, self.subkeys_matrices[-1])
+        inv_rows_shifting(cipher_text)
+        inv_map_to_sbox(cipher_text)
+
+        for i in range (self.number_rounds - 1, 8, -1):
+            right_circular_shift(cipher_text,ROUNDS_SHIFT_1[i-1])
+            add_round_key(cipher_text, self.subkeys_matrices[i])
+            inv_shift_columns(cipher_text)
+            inv_rows_shifting(cipher_text)
+            inv_map_to_sbox(cipher_text)
+        
+        for i in range (self.number_rounds - 8, 0, -1):
+            right_circular_shift(cipher_text,ROUNDS_SHIFT_2[i-1])
+            add_round_key(cipher_text, self.subkeys_matrices[i])
+            inv_shift_columns(cipher_text)
+            inv_rows_shifting(cipher_text)
+            inv_map_to_sbox(cipher_text)
     
-        add_round_key(text, self._subkeys_matrices[0])
+        add_round_key(cipher_text, self.subkeys_matrices[0])
 
-        return text
+        return convert_bytes_to_chr(cipher_text)
     
 
 
 if __name__ == '__main__':
+
     print("Welcome to the Cryptographic Algorithm! Let's Try it!")
-    text = input("text :")
-    try:
-        assert len(text) == 16
-    except:
-        print("Error! plaintext length must be 16bits")
-        text = input("text :")
+    plaintext = input("plaintext :")
+    while(plaintext != ""):
+        try:
+            assert len(plaintext) == 16
+            break
+        except:
+            print("Error! plaintext length must be 16bits")
+            plaintext = input("text :")
 
     
-    key = input("master key: ")
-    try:
-        assert len(key) == 16
-    except:
-        print("Error! crypto_key length must be 16bits")
-        key = input("master key: ")
+    crypto_key = input("118-bit key: ")
+    while(crypto_key != ""):
+        try:
+            assert len(crypto_key) == 16
+            break
+        except:
+            print("Error! crypto_key length must be 16bits")
+            crypto_key = input("118-bit key: ")
 
-    aes = Algo(key)
+    Algorithm = My_Cryto_Algorithm(crypto_key)
     
-    choice = input("Do you want to encrypt or decrypt? ")
-    if choice == "encrypt" or "decrypt":
+    choice = input("Do you want to encrypt (enter encrypt) or encrypt/decrypt (enter both)? ")
+    if choice == "encrypt" or "both":
         if choice == "encrypt":
-            lol = aes.encrypt(text)
-            #print(convert_into_matrix(_string_to_bytes(text)))
-            print("Encrypted message: ",convert_bytes_to_string(aes.encrypt(text)))
-            #print(aes.decrypt(lol))
-        elif choice == "decrypt":
-            lol = aes.encrypt(text)
-            #print(convert_into_matrix(_string_to_bytes(text)))
-            print("Encrypted message: ",convert_bytes_to_string(aes.encrypt(text)))
-            input("Press enter to continue.......")
-            print("Decrypted message: ",convert_bytes_to_string(aes.decrypt(lol)))
-        else:
-            print("you should choose between encrypt ou decrypt")
+            
+            cipher_text = convert_bytes_to_chr(Algorithm.Encryption(plaintext))
+            print("Encrypted message: ", cipher_text)
+            
+        elif choice == "both":
 
-#print(toHex(text))
+            cipher_text = Algorithm.Encryption(plaintext)
+            print("Encrypted message: ", convert_bytes_to_chr(Algorithm.Encryption(plaintext)))
+            input("Press enter to continue.......")
+            plaintext = Algorithm.Decryption(cipher_text)
+            print("Decrypted message: ", plaintext)
+        else:
+            print("Error! Enter encrypt for encryption or both for encryption/decryption")
+
